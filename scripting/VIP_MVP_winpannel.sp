@@ -25,55 +25,61 @@ public void OnPluginStart()
 
 public Action Command_MVP(int client, int args)
 {
-	ShowMVPMenu(client);
+	Show_MVPMenu(client);
 	return Plugin_Handled;
 }
 
-public void ShowMVPMenu(int client)
+public void Show_MVPMenu(int client)
 {
 	Menu menu = new Menu(ShowMVPMenuHandler, MENU_ACTIONS_ALL);
 	menu.SetTitle("[CSGO资料库] VIP MVP特效菜单");
 	menu.AddItem("1", "你到底会不会打CSGO");
 	menu.ExitButton = true;
-	menu.Display(client, MENU_TIME_FOREVER);
+	menu.Display(client, 10);
 }
 
 public int ShowMVPMenuHandler(Menu menu, MenuAction action, int client, int itemNum)
 {
-	char sTemp[128] = "";
+	char szPanelInfo[256] = "";
+	char szMvpFileName[128] = "pwa/winpanel/S7PASS_L1_MVP01.png";
 	switch(action)
 	{
 		case MenuAction_Select:
 		{
-			char szInfo[32];
+			char szInfo[16];
+			char szMvpName[128];
+			char szFormatedMvpName[128];
+			GetClientName(client, szMvpName, sizeof(szMvpName));
+			FormatEx(szFormatedMvpName, sizeof(szFormatedMvpName), "<font size='35' color='#ffa500'>%s</font>", szMvpName);
+
 			menu.GetItem(itemNum, szInfo, sizeof(szInfo));
-			PrintToChat(client, "You pick 测试 %d", StringToInt(szInfo));
 			if (StringToInt(szInfo) == 1)
 			{
-				// Format(sTemp, sizeof(sTemp), "<img src='file://{images}/pwa/winpanel/S7PASS_L1_MVP01.png'/>");
-				Format(sTemp, sizeof(sTemp), "<p> 1323 \n\n\n\n <img src='file://{images}/pwa/winpanel/S7PASS_L1_MVP01.png'/> </p> ");
+				FormatEx(szPanelInfo, sizeof(szPanelInfo), "<p> MVP玩家 %s </p><img src='file://{images}/%s'/>", szFormatedMvpName, szMvpFileName);
 				Event newevent_message = CreateEvent("cs_win_panel_round");
-				newevent_message.SetString("funfact_token", sTemp);
-
+				newevent_message.SetString("funfact_token", szPanelInfo);
 				for(int z = 1; z <= MaxClients; z++)
 				{
 					if(IsClientInGame(z) && !IsFakeClient(z))
 					{
 						newevent_message.FireToClient(z);
 					}
-				}				
-				newevent_message.Cancel();
-				CreateTimer(10.0, Timer_RepeatVoteDisplay);
+				}
+				newevent_message.Cancel();				
+				//close the winpanel 5sec later
+				CreateTimer(5.0, Timer_StopMvpPaneleDisplay);
 			}
+			Show_MVPMenu(client);
 		}
 		case MenuAction_End:
 			delete menu;
 	}
 }
 
-Action Timer_RepeatVoteDisplay(Handle timer)
+public Action Timer_StopMvpPaneleDisplay(Handle timer)
 {
-	Event newevent_round = CreateEvent("round_start");
+	//send fake cs_win_panel_round event to close the WinPanel
+	Event newevent_round = CreateEvent("cs_win_panel_round");
 	for(int z = 1; z <= MaxClients; z++)
 	{
       if(IsClientInGame(z) && !IsFakeClient(z))
@@ -82,4 +88,5 @@ Action Timer_RepeatVoteDisplay(Handle timer)
 	  }
 	}
 	newevent_round.Cancel();
+	return Plugin_Handled;
 }
