@@ -45,7 +45,7 @@ public Plugin myinfo =
     name = "MVP_winpannel",
     author = "SenioRchu",
     description = "Special MVP winpannel for Players ",
-    version = "1.1.0",
+    version = "1.1.1",
     url = "https://steamcommunity.com/id/niceday_zhu/"
 };
 
@@ -186,17 +186,22 @@ public Action MVP_Verify(Event event, const char[] name, bool dontBroadcast)
     }
     
     iMVPClient = GetClientOfUserId(GetEventInt(event, "userid"));
-    iCurMVPClient = iMVPClient;
-    GetClientName(iMVPClient, szMVPName, sizeof(szMVPName));
-    // check whether the Current MVPClient is the same as the preivous one
-    // if not, the previous MVP winpanel's pic size must be resized in order to make winpanel looks normal
-    if (iLastMVPClient != iMVPClient)
+    if(IsClientValid(iMVPClient))
     {
-        g_bMVPanelHasShown[iLastMVPClient] =false;
-        PrintToServer("iLastMVPClient = %d, iMVPClient = %d", iLastMVPClient, iMVPClient);
-        PrintToServer("g_bMVPanelHasShown[%d] = %d", iCurMVPClient, g_bMVPanelHasShown[iCurMVPClient]);
+        iCurMVPClient = iMVPClient;
+        GetClientName(iMVPClient, szMVPName, sizeof(szMVPName));
+        // check whether the Current MVPClient is the same as the preivous one
+        // if not, the previous MVP winpanel's pic size must be resized in order to make winpanel looks normal
+        if (iLastMVPClient != iMVPClient)
+        {
+            g_bMVPanelHasShown[iLastMVPClient] =false;
+            PrintToServer("iLastMVPClient = %d, iMVPClient = %d", iLastMVPClient, iMVPClient);
+            PrintToServer("g_bMVPanelHasShown[%d] = %d", iCurMVPClient, g_bMVPanelHasShown[iCurMVPClient]);
+        }       
     }
-    // PrintToChatAll("MVP 玩家 %s", szMVPName);    
+    else{
+        return;
+    }
 }
 
 public Action WinPanel_Modify(Event event, const char[] name, bool dontBroadcast)
