@@ -6,14 +6,12 @@
 #pragma semicolon 1
 
 #define NUM_OF_MVP_STYLE    5 
+#define MAX_MVP_COUNT   20
+char Configfile[PLATFORM_MAX_PATH];
+char g_sMVPName[MAX_MVP_COUNT][1024];
+char g_sMVPFile[MAX_MVP_COUNT][1024];
 char szPanelInfo[256] = "";
-char szMvpFileName[NUM_OF_MVP_STYLE][128] = {
-    "bbscsgocn/winpanel/mvp_1.png",
-    "bbscsgocn/winpanel/mvp_2.png",
-    "bbscsgocn/winpanel/mvp_3.png",
-    "bbscsgocn/winpanel/mvp_4.png",
-    "bbscsgocn/winpanel/mvp_5.png",
-    };
+char szMvpFileName[MAX_MVP_COUNT][1024];
 char szFormatedMvpName[128] = "";
 char szMVPName[128];
 int iMVPClient;
@@ -21,6 +19,7 @@ int iCurMVPClient = -1;
 int iLastMVPClient = -1;
 int iLastShowWinPanel = -1;
 int iCurrentShowWinPanle = -1;
+int MVPCount = 0;
 enum eMvpIndex {
     STYLE01,
     STYLE02,
@@ -45,7 +44,7 @@ public Plugin myinfo =
     name = "MVP_winpannel",
     author = "SenioRchu",
     description = "Special MVP winpannel for Players ",
-    version = "1.1.1",
+    version = "1.2.0",
     url = "https://steamcommunity.com/id/niceday_zhu/"
 };
 
@@ -70,14 +69,14 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
-	char sBuf[PLATFORM_MAX_PATH];
-	
-	for(int i = 0; i < 5; i++)
-	{
-		Format(sBuf, sizeof sBuf, "materials/panorama/images/bbscsgocn/winpanel/mvp_%i.png", 1 + i);
-		
-		AddFileToDownloadsTable(sBuf);
-	}
+    // char sBuf[PLATFORM_MAX_PATH];
+    
+    // for(int i = 0; i < 5; i++)
+    // {
+    //     Format(sBuf, sizeof sBuf, "materials/panorama/images/bbscsgocn/winpanel/mvp_%i.png", 1 + i);
+        
+    //     AddFileToDownloadsTable(sBuf);
+    // }
 }
 
 public void OnClientPostAdminCheck(int client)
@@ -88,6 +87,64 @@ public void OnClientPostAdminCheck(int client)
 public void OnClientCookiesCached(int client)
 {
     EnableMVPanelIni(client);
+}
+
+public void OnConfigsExecuted()
+{
+    MVPCount = 0;
+    LoadConfig();
+}
+
+// int FindMVPIDByName(char [] name)
+// {
+//     int i;
+//     for(i = 0; i < MVPCount; i++)
+//     {
+//         if(StrEqual(g_sMVPName[i], name))	id = i;
+//     }
+    
+//     return id;
+// }
+
+void LoadConfig()
+{
+    BuildPath(Path_SM, Configfile, sizeof(Configfile), "configs/mvp_winpanel.cfg");
+    
+    if(!FileExists(Configfile))
+        SetFailState("Can not find config file \"%s\"!", Configfile);
+    
+    
+    KeyValues kv = CreateKeyValues("MVPWinpanel");
+    kv.ImportFromFile(Configfile);
+    
+    // Read Config
+    if(kv.GotoFirstSubKey())
+    {
+        char name[1024];
+        char file[1024];
+        
+        do
+        {
+            kv.GetSectionName(name, sizeof(name));
+            kv.GetString("file", file, sizeof(file));
+            
+            strcopy(g_sMVPName[MVPCount], sizeof(g_sMVPName[]), name);
+            strcopy(g_sMVPFile[MVPCount], sizeof(g_sMVPFile[]), file);
+            Format(szMvpFileName[MVPCount], sizeof(szMvpFileName[]), "bbscsgocn/winpanel/%s", file);
+            PrintToServer("Read from mvp_winpanel.cfg name:%s", g_sMVPName[MVPCount]);
+            PrintToServer("Read from mvp_winpanel.cfg file:%s", szMvpFileName[MVPCount]);
+            char filepath[1024];
+            Format(filepath, sizeof filepath, "materials/panorama/images/bbscsgocn/winpanel/%s", g_sMVPFile[MVPCount]);
+            PrintToServer("Read from mvp_winpanel.cfg filepath:%s", filepath);
+            AddFileToDownloadsTable(filepath);
+            
+            MVPCount++;
+        }
+        while (kv.GotoNextKey());
+    }
+    
+    kv.Rewind();
+    delete kv;
 }
 
 public Action Command_MVP(int client, int args)
@@ -134,7 +191,7 @@ public Action Command_set_mvpanel(int client, int args)
         if(StrEqual(szPlayerChoosedMVPStyle[client], ""))
         {
             // PrintToChat(client, " ★ \x02client = %d", client);
-            PrintToChat(client, "★ \x04MVP 特效开启失败 请先运行 !mvp 选择你想要的特效"); //tell the player to use !mvp firstly
+            PrintToChat(client, "★ \x04MVP 特效开启失败 请先运行 !mvpanel 选择你想要的特效"); //tell the player to use !mvp firstly
             g_bIsMVPanelEnabled[client] = false;
             SetClientCookie(client, g_hMVPanelCookie, "0");
         } 
@@ -264,13 +321,14 @@ stock bool IsWarmup()
 
 public void Show_MVPMenu(int client)
 {
+    char itemName[128];
     Menu menu = new Menu(ShowMVPMenuHandler, MENU_ACTIONS_ALL);
     menu.SetTitle("[CSGO资料库] MVP特效菜单");
-    menu.AddItem("1", "MVP特效一");
-    menu.AddItem("2", "MVP特效二");
-    menu.AddItem("3", "MVP特效三");
-    menu.AddItem("4", "MVP特效四");
-    menu.AddItem("5", "MVP特效五");
+    for (int i = 0; i < MVPCount; i++)
+    {
+        IntToString(i+1, itemName, sizeof(itemName));
+        menu.AddItem(itemName, g_sMVPName[i]);
+    }
     menu.ExitButton = true;
     menu.Display(client, MENU_TIME_FOREVER);
 }
@@ -293,56 +351,7 @@ public int ShowMVPMenuHandler(Menu menu, MenuAction action, int client, int item
             menu.GetItem(itemNum, szInfo, sizeof(szInfo));
             iCurrentShowWinPanle = StringToInt(szInfo);
             PrintToServer("iCurrentShowWinPanle = %d", iCurrentShowWinPanle);
-            switch(StringToInt(szInfo)-1) // the first itemNum = 1
-            {
-                case STYLE01:
-                {
-                    Format(szPlayerChoosedMVPStyle[client], sizeof(szPlayerChoosedMVPStyle), szMvpFileName[STYLE01]);
-                    SetClientCookie(client, g_hMVPStyleCookie, szPlayerChoosedMVPStyle[client]);
-
-                    Fill_Info_Winpanel(szPanelInfo, sizeof(szPanelInfo), STYLE01);
-                    Show_Winpanel_For_Preview(szPanelInfo, client);
-                    //close the winpanel 5sec later
-                    CreateTimer(1.0, Timer_StopMvpPaneleDisplay, _, TIMER_REPEAT);
-
-                }
-                case STYLE02:
-                {
-                    Format(szPlayerChoosedMVPStyle[client], sizeof(szPlayerChoosedMVPStyle), szMvpFileName[STYLE02]);
-                    SetClientCookie(client, g_hMVPStyleCookie, szPlayerChoosedMVPStyle[client]);
-                    Fill_Info_Winpanel(szPanelInfo, sizeof(szPanelInfo), STYLE02);
-                    Show_Winpanel_For_Preview(szPanelInfo, client);
-                    //close the winpanel 5sec later
-                    CreateTimer(1.0, Timer_StopMvpPaneleDisplay, _, TIMER_REPEAT);
-                }
-                case STYLE03:
-                {
-                    Format(szPlayerChoosedMVPStyle[client], sizeof(szPlayerChoosedMVPStyle), szMvpFileName[STYLE03]);
-                    SetClientCookie(client, g_hMVPStyleCookie, szPlayerChoosedMVPStyle[client]);
-                    Fill_Info_Winpanel(szPanelInfo, sizeof(szPanelInfo), STYLE03);
-                    Show_Winpanel_For_Preview(szPanelInfo, client);
-                    //close the winpanel 5sec later
-                    CreateTimer(1.0, Timer_StopMvpPaneleDisplay, _, TIMER_REPEAT);
-                }
-                case STYLE04:
-                {
-                    Format(szPlayerChoosedMVPStyle[client], sizeof(szPlayerChoosedMVPStyle), szMvpFileName[STYLE04]);
-                    SetClientCookie(client, g_hMVPStyleCookie, szPlayerChoosedMVPStyle[client]);
-                    Fill_Info_Winpanel(szPanelInfo, sizeof(szPanelInfo), STYLE04);
-                    Show_Winpanel_For_Preview(szPanelInfo, client);
-                    //close the winpanel 5sec later
-                    CreateTimer(1.0, Timer_StopMvpPaneleDisplay, _, TIMER_REPEAT);
-                }
-                case STYLE05:
-                {
-                    Format(szPlayerChoosedMVPStyle[client], sizeof(szPlayerChoosedMVPStyle), szMvpFileName[STYLE05]);
-                    SetClientCookie(client, g_hMVPStyleCookie, szPlayerChoosedMVPStyle[client]);
-                    Fill_Info_Winpanel(szPanelInfo, sizeof(szPanelInfo), STYLE05);
-                    Show_Winpanel_For_Preview(szPanelInfo, client);
-                    //close the winpanel 5sec later
-                    CreateTimer(1.0, Timer_StopMvpPaneleDisplay, _, TIMER_REPEAT);
-                }
-            }
+            ParseAndShowWinpanel(client, StringToInt(szInfo)-1);
             iLastShowWinPanel = iCurrentShowWinPanle;
         }
         case MenuAction_End:
@@ -351,9 +360,15 @@ public int ShowMVPMenuHandler(Menu menu, MenuAction action, int client, int item
 }
 
 // TODO
-public void ParseAndShowWinpanel(int style)
+public void ParseAndShowWinpanel(int client, int style)
 {
+    Format(szPlayerChoosedMVPStyle[client], sizeof(szPlayerChoosedMVPStyle), szMvpFileName[style]);
+    SetClientCookie(client, g_hMVPStyleCookie, szPlayerChoosedMVPStyle[client]);
 
+    Fill_Info_Winpanel(szPanelInfo, sizeof(szPanelInfo), style);
+    Show_Winpanel_For_Preview(szPanelInfo, client);
+    //close the winpanel 6sec later
+    CreateTimer(6.0, Timer_StopMvpPaneleDisplay, _);
 }
 
 public void Fill_Info_Winpanel(char[] info, int size, int style)
@@ -401,25 +416,25 @@ public void Show_Winpanel_For_Preview(char[] info, int client)
 public Action Timer_StopMvpPaneleDisplay(Handle timer)
 {
     // Create a global variable visible only in the local scope (this function).
-    static int numPrinted = 0;
-    if (numPrinted >= 5) 
-    {
-        numPrinted = 0;
+    // static int numPrinted = 0;
+    // if (numPrinted >= 5) 
+    // {
+    //     numPrinted = 0;
         //send fake cs_win_panel_round event to close the WinPanel
-        Event newevent_clear = CreateEvent("cs_win_panel_round");
-        for(int z = 1; z <= MaxClients; z++)
+    Event newevent_clear = CreateEvent("cs_win_panel_round");
+    for(int z = 1; z <= MaxClients; z++)
+    {
+        if(IsClientInGame(z) && !IsFakeClient(z))
         {
-            if(IsClientInGame(z) && !IsFakeClient(z))
-            {
-                newevent_clear.FireToClient(z);
-            }
+            newevent_clear.FireToClient(z);
         }
-        newevent_clear.Cancel();
-        return Plugin_Stop;
     }
-    PrintToServer("numPrinted = %d", numPrinted);
-    numPrinted++;
-    return Plugin_Continue;
+    newevent_clear.Cancel();
+    //     return Plugin_Stop;
+    // }
+    // PrintToServer("numPrinted = %d", numPrinted);
+    // numPrinted++;
+    // return Plugin_Continue;
 }
 
 bool IsClientValid(int client)
@@ -431,17 +446,17 @@ bool IsClientValid(int client)
 // {
 // 	char szLogLine[1024];
 // 	VFormat(szLogLine, sizeof(szLogLine), log, 2);
-	
+
 // 	static char szPath[128];
 // 	if (strlen(szPath) < 1)
 // 	{
 // 		char szFileName[64];
 // 		GetPluginFilename(INVALID_HANDLE, szFileName, sizeof(szFileName));
 // 		ReplaceString(szFileName, sizeof(szFileName), ".smx", "");
-		
+        
 // 		FormatTime(szPath, sizeof(szPath), "%Y%m%d", GetTime());
 // 		BuildPath(Path_SM, szPath, sizeof(szPath), "logs/%s_%s.log", szFileName, szPath);
 // 	}
-	
+
 // 	LogToFile(szPath, szLogLine);
 // }
