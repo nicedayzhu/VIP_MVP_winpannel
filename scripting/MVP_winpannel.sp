@@ -44,7 +44,7 @@ public Plugin myinfo =
     name = "MVP_winpannel",
     author = "SenioRchu",
     description = "Special MVP winpannel for Players ",
-    version = "1.2.0",
+    version = "1.2.1",
     url = "https://steamcommunity.com/id/niceday_zhu/"
 };
 
@@ -69,14 +69,8 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
-    // char sBuf[PLATFORM_MAX_PATH];
-    
-    // for(int i = 0; i < 5; i++)
-    // {
-    //     Format(sBuf, sizeof sBuf, "materials/panorama/images/bbscsgocn/winpanel/mvp_%i.png", 1 + i);
-        
-    //     AddFileToDownloadsTable(sBuf);
-    // }
+    MVPCount = 0;
+    LoadConfig();
 }
 
 public void OnClientPostAdminCheck(int client)
@@ -89,10 +83,10 @@ public void OnClientCookiesCached(int client)
     EnableMVPanelIni(client);
 }
 
+// TODO: for preserved puropse
 public void OnConfigsExecuted()
 {
-    MVPCount = 0;
-    LoadConfig();
+
 }
 
 // int FindMVPIDByName(char [] name)
@@ -136,7 +130,7 @@ void LoadConfig()
             char filepath[1024];
             Format(filepath, sizeof filepath, "materials/panorama/images/bbscsgocn/winpanel/%s", g_sMVPFile[MVPCount]);
             PrintToServer("Read from mvp_winpanel.cfg filepath:%s", filepath);
-            AddFileToDownloadsTable(filepath);
+            AddFileToDownloadsTable(filepath); 
             
             MVPCount++;
         }
@@ -150,6 +144,7 @@ void LoadConfig()
 public Action Command_MVP(int client, int args)
 {
     Show_MVPMenu(client);
+    return Plugin_Handled;
 }
 
 public void OnRoundStart(Handle hEvent, const char[] sName, bool bDontBroadcast)
@@ -206,6 +201,7 @@ public Action Command_set_mvpanel(int client, int args)
         }
 
     }
+    return Plugin_Handled;
 }
 
 void EnableMVPanelIni(int client)
@@ -234,7 +230,7 @@ void EnableMVPanelIni(int client)
     }
 }
 
-public Action MVP_Verify(Event event, const char[] name, bool dontBroadcast)
+public void MVP_Verify(Event event, const char[] name, bool dontBroadcast)
 {
     // PrintToServer("hook round_mvp");
     if (IsWarmup())
@@ -254,7 +250,8 @@ public Action MVP_Verify(Event event, const char[] name, bool dontBroadcast)
             g_bMVPanelHasShown[iLastMVPClient] =false;
             PrintToServer("iLastMVPClient = %d, iMVPClient = %d", iLastMVPClient, iMVPClient);
             PrintToServer("g_bMVPanelHasShown[%d] = %d", iCurMVPClient, g_bMVPanelHasShown[iCurMVPClient]);
-        }       
+        }
+        return;      
     }
     else{
         return;
@@ -357,6 +354,7 @@ public int ShowMVPMenuHandler(Menu menu, MenuAction action, int client, int item
         case MenuAction_End:
             delete menu;
     }
+    return 0;
 }
 
 // TODO
@@ -430,6 +428,7 @@ public Action Timer_StopMvpPaneleDisplay(Handle timer)
         }
     }
     newevent_clear.Cancel();
+    return Plugin_Continue;
     //     return Plugin_Stop;
     // }
     // PrintToServer("numPrinted = %d", numPrinted);
