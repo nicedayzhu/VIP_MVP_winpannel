@@ -17,8 +17,6 @@ char szMVPName[128];
 int iMVPClient;
 int iCurMVPClient = -1;
 int iLastMVPClient = -1;
-int iLastShowWinPanel = -1;
-int iCurrentShowWinPanle = -1;
 int MVPCount = 0;
 enum eMvpIndex {
     STYLE01,
@@ -44,7 +42,7 @@ public Plugin myinfo =
     name = "MVP_winpannel",
     author = "SenioRchu",
     description = "Special MVP winpannel for Players ",
-    version = "1.2.1",
+    version = "1.2.2",
     url = "https://steamcommunity.com/id/niceday_zhu/"
 };
 
@@ -276,37 +274,13 @@ public Action WinPanel_Modify(Event event, const char[] name, bool dontBroadcast
         PrintToServer("iCurMVPClient = %d", iCurMVPClient);
         PrintToServer("iLastMVPClient = %d", iLastMVPClient);
         PrintToServer("g_bMVPanelHasShown[iMVPClient:%d]= %d", iMVPClient, g_bMVPanelHasShown[iMVPClient]);
-        if (!g_bMVPanelHasShown[iMVPClient])
-        {
-            Format(szCurInfo, sizeof(szCurInfo), 
-                "<font size='35' color='#ffa500'>%s</font> 成为了最有价值的MVP<br>\
-                <img src='file://{images}/%s' height='117' height='514' /><br><br><br>", 
-                szMVPName, 
-                szPlayerChoosedMVPStyle[iMVPClient]);
-            g_bMVPanelHasShown[iMVPClient] = true;    
-        }
-        // if the currentMVP is not the previous one, fix pic size with <br>
-        else if(iCurMVPClient != iLastMVPClient)
-        {
-            Format(szCurInfo, sizeof(szCurInfo), 
-                "<font size='35' color='#ffa500'>%s</font> 成为了最有价值的MVP<br>\
-                <img src='file://{images}/%s' height='117' height='514' />", 
-                szMVPName, 
-                szPlayerChoosedMVPStyle[iMVPClient]);
-            // g_bMVPanelHasShown[iMVPClient] = true;
-        }
-        else 
-        {
-            // if custom winpanel has shown before
-            Format(szCurInfo, sizeof(szCurInfo), 
-                "<font size='35' color='#ffa500'>%s</font> 成为了最有价值的MVP<br>\
-                <img src='file://{images}/%s' height='117' height='514' />", 
-                szMVPName, 
+        Format(szCurInfo, sizeof(szCurInfo), 
+            "<font size='35' color='#ffa500'>%s</font> 成为了最有价值的MVP<br>\
+            <img src='file://{images}/%s' class=\"WinPanelRow WinPanelRow--Main survival-winner--reveal\" />", 
+            szMVPName, 
             szPlayerChoosedMVPStyle[iMVPClient]);
-        }
         // set the Formated winpanel info for the event
         event.SetString("funfact_token", szCurInfo);
-        iLastMVPClient = iMVPClient;
         return Plugin_Continue;
     }
 }
@@ -346,10 +320,7 @@ public int ShowMVPMenuHandler(Menu menu, MenuAction action, int client, int item
             FormatEx(szFormatedMvpName, sizeof(szFormatedMvpName), "<font size='35' color='#ffa500'>%s</font>", szMvpName);
 
             menu.GetItem(itemNum, szInfo, sizeof(szInfo));
-            iCurrentShowWinPanle = StringToInt(szInfo);
-            PrintToServer("iCurrentShowWinPanle = %d", iCurrentShowWinPanle);
             ParseAndShowWinpanel(client, StringToInt(szInfo)-1);
-            iLastShowWinPanel = iCurrentShowWinPanle;
         }
         case MenuAction_End:
             delete menu;
@@ -371,18 +342,8 @@ public void ParseAndShowWinpanel(int client, int style)
 
 public void Fill_Info_Winpanel(char[] info, int size, int style)
 {
-    if(iLastShowWinPanel !=iCurrentShowWinPanle) 
-    {
-        PrintToServer("iLastShowWinPanel = %d, iCurrentShowWinPanle = %d", iLastShowWinPanel, iCurrentShowWinPanle);
-        FormatEx(info, size, "<p> MVP玩家 %s </p>\n<img src='file://{images}/%s' height='117' height='514' /><br><br>", 
-            szFormatedMvpName, szMvpFileName[style]);
-    } 
-    else 
-    {
-        PrintToServer("iLastShowWinPanel = %d, iCurrentShowWinPanle = %d", iLastShowWinPanel, iCurrentShowWinPanle);
-        FormatEx(info, size, "<p> MVP玩家 %s </p>\n<img src='file://{images}/%s' height='117' height='514' />", 
-            szFormatedMvpName, szMvpFileName[style]);
-    }
+    FormatEx(info, size, "<p> MVP玩家 %s </p>\n<img src='file://{images}/%s' class=\"WinPanelRow WinPanelRow--Main survival-winner--reveal\"/>", 
+        szFormatedMvpName, szMvpFileName[style]);
     return;
 }
 
